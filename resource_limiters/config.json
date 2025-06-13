@@ -1,0 +1,24 @@
+{
+  "name": "DockerLimiter",
+  "version": "0.93",
+  "slug": "resource_limiters",
+  "description": "Set and enforce Docker container limits for CPU and memory.",
+  "arch": [
+    "armhf",
+    "armv7",
+    "aarch64",
+    "amd64",
+    "i386"
+  ],
+  "startup": "system",
+  "docker_api": true,
+  "boot": "auto",
+  "ingress": true,
+  "ingress_port": 12000,
+  "privileged": [
+    "SYS_ADMIN"
+  ],
+  "full_access": true,
+  "options": {},
+  "schema": {}
+}

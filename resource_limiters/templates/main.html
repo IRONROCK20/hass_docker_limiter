@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HASS Container Resource Limiter</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #444;
+    }
+    th {
+      background: #222;
+    }
+    select {
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 6px;
+      margin: 2px;
+      position: relative;
+      z-index: 10;
+      cursor: pointer;
+    }
+    button {
+      background: #555;
+      color: white;
+      border: 1px solid #777;
+      border-radius: 4px;
+      padding: 12px 24px;
+      font-size: 1.1em;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>HASS Container Resource Limiter</h1>
+  <form method="POST">
+    <table>
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>Name</th>
+          <th>Stored Current Memory</th>
+          <th>Stored Current CPU</th>
+          <th>New Memory</th>
+          <th>New CPU</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in containers %}
+        <tr>
+          <td>
+            <input type="checkbox" name="containers" value="{{ c.id }}"
+              {% if c.id in limits %}checked{% endif %}>
+          </td>
+          <td>{{ c.name }}</td>
+          <td>{{ (c.attrs.HostConfig.Memory / (1024*1024))|round(2) }} MB</td>
+          <td>{{ ((c.attrs.HostConfig.CpuPeriod > 0) and (c.attrs.HostConfig.CpuQuota / c.attrs.HostConfig.CpuPeriod) or 0)|round(2) }} CPUs</td>
+          <td>
+            <select name="memory_{{ c.id }}">
+              {% for opt in memory_options %}
+              <option value="{{ opt }}" {% if limits.get(c.id,{}).memory == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <select name="cpus_{{ c.id }}">
+              {% for cpu in cpu_options %}
+              <option value="{{ cpu }}" {% if limits.get(c.id,{}).cpus == cpu %}selected{% endif %}>{{ cpu }}</option>
+              {% endfor %}
+            </select>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="submit">Apply to Selected</button>
+  </form>
+</body>
+</html>
