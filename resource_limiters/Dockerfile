@@ -11,12 +11,12 @@ COPY . /
 ARG BUILD_ARCH=arm64
 
 # Copy data for add-on
-COPY run.sh /
+#COPY run.sh /
 # Install requirements for add-on
 RUN pip install flask docker gunicorn
 
 EXPOSE 12000
 
-RUN chmod a+x /run.sh
+#RUN chmod a+x /run.sh
 #CMD [ "/run.sh" ]
 CMD ["gunicorn", "-b", "0.0.0.0:12000", "app:app"]
