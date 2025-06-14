@@ -1,6 +1,6 @@
 {
   "name": "Docker Resource Limiter",
-  "version": "0.94",
+  "version": "0.95",
   "slug": "resource_limiters",
   "description": "Set and enforce Docker container limits for CPU and memory.",
   "arch": [
