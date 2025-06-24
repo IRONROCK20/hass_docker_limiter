@@ -54,33 +54,62 @@
         <tr>
           <th>Select</th>
           <th>Name</th>
-          <th>Stored Current Memory</th>
-          <th>Stored Current CPU</th>
+          <th>Configured Memory Limit</th>
+          <th>Configured CPU Limit</th>
           <th>New Memory</th>
           <th>New CPU</th>
         </tr>
       </thead>
       <tbody>
         {% for c in containers %}
+        {% set name = c.name %}
         <tr>
           <td>
-            <input type="checkbox" name="containers" value="{{ c.id }}"
-              {% if c.id in limits %}checked{% endif %}>
+            <!-- Use container name as value, so JSON keys = names -->
+            <input type="checkbox" name="containers" value="{{ name }}"
+              {% if name in limits %}checked{% endif %}>
           </td>
-          <td>{{ c.name }}</td>
-          <td>{{ (c.attrs.HostConfig.Memory / (1024*1024))|round(2) }} MB</td>
-          <td>{{ ((c.attrs.HostConfig.CpuPeriod > 0) and (c.attrs.HostConfig.CpuQuota / c.attrs.HostConfig.CpuPeriod) or 0)|round(2) }} CPUs</td>
+          <td>{{ name }}</td>
           <td>
-            <select name="memory_{{ c.id }}">
+            {# Display current configured limit from HostConfig.Memory (bytes to MiB) #}
+            {% set mem_bytes = c.attrs.HostConfig.Memory %}
+            {% if mem_bytes and mem_bytes > 0 %}
+              {{ (mem_bytes / (1024*1024))|round(2) }} MB
+            {% else %}
+              unlimited
+            {% endif %}
+          </td>
+          <td>
+            {# Display current CPU limit: CpuQuota / CpuPeriod #}
+            {% set period = c.attrs.HostConfig.CpuPeriod %}
+            {% set quota = c.attrs.HostConfig.CpuQuota %}
+            {% if period and period > 0 and quota and quota > 0 %}
+              {{ (quota / period)|round(2) }} CPUs
+            {% else %}
+              unlimited
+            {% endif %}
+          </td>
+          <td>
+            <!-- Dropdown for new memory, named by container name -->
+            <select name="memory_{{ name }}">
+              <option value="">--</option>
               {% for opt in memory_options %}
-              <option value="{{ opt }}" {% if limits.get(c.id,{}).memory == opt %}selected{% endif %}>{{ opt }}</option>
+              <option value="{{ opt }}"
+                {% if limits.get(name, {}).get("memory") == opt %}selected{% endif %}>
+                {{ opt }}
+              </option>
               {% endfor %}
             </select>
           </td>
           <td>
-            <select name="cpus_{{ c.id }}">
+            <!-- Dropdown for new CPU, named by container name -->
+            <select name="cpus_{{ name }}">
+              <option value="">--</option>
               {% for cpu in cpu_options %}
-              <option value="{{ cpu }}" {% if limits.get(c.id,{}).cpus == cpu %}selected{% endif %}>{{ cpu }}</option>
+              <option value="{{ cpu }}"
+                {% if limits.get(name, {}).get("cpus") == cpu %}selected{% endif %}>
+                {{ cpu }}
+              </option>
               {% endfor %}
             </select>
           </td>
