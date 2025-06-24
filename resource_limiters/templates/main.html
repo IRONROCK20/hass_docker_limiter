@@ -1,94 +1,72 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HASS Container Resource Limiter</title>
-  <style>
-    body {
-      background: black;
-      color: white;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #444;
-    }
-    th {
-      background: #222;
-    }
-    select {
-      background: #333;
-      color: white;
-      border: 1px solid #555;
-      border-radius: 4px;
-      padding: 6px;
-      margin: 2px;
-      position: relative;
-      z-index: 10;
-      cursor: pointer;
-    }
-    button {
-      background: #555;
-      color: white;
-      border: 1px solid #777;
-      border-radius: 4px;
-      padding: 12px 24px;
-      font-size: 1.1em;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-  </style>
+  <meta charset="utf-8">
+  <title>Container Resource Limits</title>
 </head>
 <body>
-  <h1>HASS Container Resource Limiter</h1>
-  <form method="POST">
-    <table>
+  <h1>Set Container Limits</h1>
+
+  <form method="post">
+    <table border="1" cellpadding="5" cellspacing="0">
       <thead>
         <tr>
           <th>Select</th>
-          <th>Name</th>
-          <th>Stored Current Memory</th>
-          <th>Stored Current CPU</th>
-          <th>New Memory</th>
-          <th>New CPU</th>
+          <th>Container Name</th>
+          <th>Image</th>
+          <th>Current Limits</th>
+          <th>Memory</th>
+          <th>CPUs</th>
         </tr>
       </thead>
       <tbody>
-        {% for c in containers %}
-        <tr>
-          <td>
-            <input type="checkbox" name="containers" value="{{ c.id }}"
-              {% if c.id in limits %}checked{% endif %}>
-          </td>
-          <td>{{ c.name }}</td>
-          <td>{{ (c.attrs.HostConfig.Memory / (1024*1024))|round(2) }} MB</td>
-          <td>{{ ((c.attrs.HostConfig.CpuPeriod > 0) and (c.attrs.HostConfig.CpuQuota / c.attrs.HostConfig.CpuPeriod) or 0)|round(2) }} CPUs</td>
-          <td>
-            <select name="memory_{{ c.id }}">
-              {% for opt in memory_options %}
-              <option value="{{ opt }}" {% if limits.get(c.id,{}).memory == opt %}selected{% endif %}>{{ opt }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td>
-            <select name="cpus_{{ c.id }}">
-              {% for cpu in cpu_options %}
-              <option value="{{ cpu }}" {% if limits.get(c.id,{}).cpus == cpu %}selected{% endif %}>{{ cpu }}</option>
-              {% endfor %}
-            </select>
-          </td>
-        </tr>
+        {% for cont in containers %}
+          {% set name = cont.name %}
+          <tr>
+            <td>
+              <!-- Checkbox value is container name -->
+              <input type="checkbox" name="containers" value="{{ name }}"
+                {% if name in limits %} checked {% endif %}>
+            </td>
+            <td>{{ name }}</td>
+            <td>{{ cont.image.tags|join(', ') }}</td>
+            <td>
+              {# Show existing saved limits if any: #}
+              {% if name in limits %}
+                Memory={{ limits[name]["memory"] }}, CPUs={{ limits[name]["cpus"] }}
+              {% else %}
+                (no saved limit)
+              {% endif %}
+            </td>
+            <td>
+              <!-- Dropdown for memory options; name attribute includes the container name -->
+              <select name="memory_{{ name }}">
+                <option value="">--</option>
+                {% for opt in memory_options %}
+                  <option value="{{ opt }}"
+                    {% if name in limits and limits[name]["memory"] == opt %} selected {% endif %}>
+                    {{ opt }}
+                  </option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <!-- Dropdown for CPU options -->
+              <select name="cpus_{{ name }}">
+                <option value="">--</option>
+                {% for opt in cpu_options %}
+                  <option value="{{ opt }}"
+                    {% if name in limits and limits[name]["cpus"] == opt %} selected {% endif %}>
+                    {{ opt }}
+                  </option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
-    <button type="submit">Apply to Selected</button>
+    <button type="submit">Apply Selected Limits</button>
   </form>
 </body>
 </html>
