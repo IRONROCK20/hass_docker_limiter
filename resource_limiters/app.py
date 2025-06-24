@@ -7,7 +7,7 @@ import docker
 
 app = Flask(__name__, template_folder="templates")
 client = docker.from_env()
-CONFIG_FILE = "/data/container_limits.json"
+CONFIG_FILE = "/config/container_limits.json"
 
 # Utility: parse memory strings (e.g., "256m", "1g")
 def parse_memory(mem_str):
