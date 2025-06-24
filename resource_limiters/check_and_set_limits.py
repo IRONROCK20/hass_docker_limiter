@@ -32,16 +32,35 @@ def main():
     client = docker.from_env()
     api = client.api
 
-    for cid, settings in limits.items():
+    for identifier, settings in limits.items():
+        # identifier is now a container name (stable) or label value
+        # Attempt to get by name:
         try:
-            cont = client.containers.get(cid)
+            cont = client.containers.get(identifier)
         except docker.errors.NotFound:
-            print(f"[WARN] container {cid} not found, skipping")
+            # Optionally: try matching by label, if you prefer label-based mapping.
+            # Example: if you used labels like {"resource_limiter": "<identifier>"}, you could do:
+            # matches = client.containers.list(filters={"label": f"resource_limiter={identifier}"})
+            # if matches:
+            #     cont = matches[0]
+            # else:
+            print(f"[WARN] container '{identifier}' not found by name, skipping")
             continue
+        except docker.errors.APIError as e:
+            print(f"[ERROR] error retrieving container '{identifier}': {e}")
+            continue
+
+        cid = cont.id  # current ID
+        name = cont.name
+        print(f"[INFO] Found container name='{name}', ID={cid}")
 
         # desired
         desired_mem = parse_memory(settings.get("memory", "0"))
-        desired_cpus = float(settings.get("cpus", 0))
+        try:
+            desired_cpus = float(settings.get("cpus", 0))
+        except ValueError:
+            print(f"[ERROR] invalid cpus value for '{identifier}': {settings.get('cpus')}, skipping")
+            continue
 
         # current
         hc = cont.attrs.get("HostConfig", {})
@@ -55,18 +74,20 @@ def main():
         cpu_ok = abs(curr_cpus - desired_cpus) < 1e-2
 
         if mem_ok and cpu_ok:
-            print(f"[OK]   {cont.name}: memory={curr_mem} bytes, cpus={curr_cpus:.2f}")
+            print(f"[OK]   {name}: memory={curr_mem} bytes, cpus={curr_cpus:.2f}")
         else:
-            print(f"[FIX]  {cont.name}: "
-                  f"current({curr_mem}/{curr_cpus:.2f}) → desired({desired_mem}/{desired_cpus:.2f})")
-            api.update_container(
-                cid,
-                mem_limit=desired_mem,
-                memswap_limit=desired_mem,
-                cpu_period=period,
-                cpu_quota=int(desired_cpus * period)
-            )
-            print(f"[DONE] limits applied to {cont.name}")
+            print(f"[FIX]  {name}: current(mem={curr_mem}, cpu={curr_cpus:.2f}) → desired(mem={desired_mem}, cpu={desired_cpus:.2f})")
+            try:
+                api.update_container(
+                    cid,
+                    mem_limit=desired_mem,
+                    memswap_limit=desired_mem,
+                    cpu_period=period,
+                    cpu_quota=int(desired_cpus * period)
+                )
+                print(f"[DONE] limits applied to {name}")
+            except docker.errors.APIError as e:
+                print(f"[ERROR] failed to update {name}: {e}")
 
 if __name__ == "__main__":
     main()
